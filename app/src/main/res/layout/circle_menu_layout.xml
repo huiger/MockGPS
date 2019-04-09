@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/iv_menu_2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="@dimen/circle_menu_padding"
+        android:layout_marginEnd="@dimen/circle_menu_padding"
+        android:scaleType="centerInside"
+        android:src="@mipmap/ico_reset_location"
+        android:background="@drawable/shape_circle_white"/>
+
+    <ImageView
+        android:id="@+id/iv_menu_3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="@dimen/circle_menu_padding"
+        android:layout_marginEnd="@dimen/circle_menu_padding"
+        android:scaleType="centerInside"
+        android:src="@mipmap/ico_reset_location"
+        android:background="@drawable/shape_circle_white"/>
+
+    <ImageView
+        android:id="@+id/iv_menu_4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="@dimen/circle_menu_padding"
+        android:layout_marginEnd="@dimen/circle_menu_padding"
+        android:scaleType="centerInside"
+        android:src="@mipmap/ico_reset_location"
+        android:background="@drawable/shape_circle_white"/>
+
+
+    <ImageView
+        android:id="@+id/iv_menu_5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="@dimen/circle_menu_padding"
+        android:layout_marginEnd="@dimen/circle_menu_padding"
+        android:scaleType="centerInside"
+        android:src="@mipmap/ico_reset_location"
+        android:background="@drawable/shape_circle_white"/>
+
+
+    <ImageView
+        android:id="@+id/iv_menu_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="@dimen/circle_menu_padding"
+        android:layout_marginEnd="@dimen/circle_menu_padding"
+        android:scaleType="centerInside"
+        android:src="@mipmap/ico_add"
+        android:background="@drawable/shape_circle_white"/>
+
+
+</FrameLayout>

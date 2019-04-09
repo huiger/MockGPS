@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MockGPS</string>
+    <string name="please_get_permission">请先授予我们相应权限!</string>
+    <string name="message_permission_always_failed">为保证使用流畅, 请授予我们权限:\n\n%1$s</string>
+</resources>
