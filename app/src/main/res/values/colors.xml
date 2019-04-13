@@ -4,6 +4,9 @@
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
 
+    <color name="c_theme">#4154af</color>
     <color name="c_white">#ffffff</color>
+    <color name="c_333333">#333333</color>
+    <color name="c_666666">#666666</color>
 
 </resources>

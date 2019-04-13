@@ -11,7 +11,6 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.location.LocationProvider;
-import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,13 +22,12 @@ import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.view.Gravity;
-import android.widget.Toast;
 
 import com.amap.api.maps2d.model.LatLng;
 
 import java.util.UUID;
 
+import top.huiger.mockgps.utils.MapFixUtil;
 import top.huiger.mockgps.R;
 
 /**
@@ -49,8 +47,8 @@ public class MockGpsService extends Service {
     private HandlerThread handlerThread;
     private Handler handler;
     private boolean isStop = true;
-    //经纬度字符串
-    private String latLngInfo = "104.06121778639009&30.544111926165282";
+    //经纬度
+    private LatLng mLatLng;
 
     @SuppressLint("WrongConstant")
     @Override
@@ -118,12 +116,12 @@ public class MockGpsService extends Service {
                     .setChannelId(channelId)
                     .setContentTitle("位置模拟服务已启动")
                     .setContentText("MockLocation service is running")
-                    .setSmallIcon(R.mipmap.ic_launcher).build();
+                    .setSmallIcon(R.mipmap.logo).build();
         } else {
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this)
                     .setContentTitle("位置模拟服务已启动")
                     .setContentText("MockLocation service is running")
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(R.mipmap.logo)
                     .setOngoing(true)
                     .setChannelId(channelId);//无效
             notification = notificationBuilder.build();
@@ -132,8 +130,7 @@ public class MockGpsService extends Service {
         //
 
         //get location info from mainActivity
-        latLngInfo = intent.getStringExtra("key");
-        Log.d(TAG, "dataFromMain is " + latLngInfo);
+        mLatLng = intent.getParcelableExtra("latLng");
         //start to refresh location
         isStop = false;
 
@@ -212,10 +209,15 @@ public class MockGpsService extends Service {
 
     //set network location
     private void setNetworkLocation() {
-        //default location 30.5437233 104.0610342 成都长虹科技大厦
-        String latLngStr[] = latLngInfo.split("&");
-        LatLng latLng = new LatLng(Double.valueOf(latLngStr[1]), Double.valueOf(latLngStr[0]));
+        // log&lat
+//        String latLngStr[] = latLngInfo.split("&");
+//        LatLng latLng = new LatLng(Double.valueOf(latLngStr[1]), Double.valueOf(latLngStr[0]));
+        Log.d("msg", "MockGpsService -> setNetworkLocation: 原始数据->" + mLatLng.latitude + ":" + mLatLng.longitude);
+        double[] transform = MapFixUtil.toGPSPoint(mLatLng.latitude, mLatLng.longitude);
+        LatLng latLng = new LatLng(transform[0], transform[1]);
+        Log.d("msg", "MockGpsService -> setNetworkLocation: 纠正偏差后->" + latLng.longitude + ":" + latLng.latitude);
         String providerStr = LocationManager.NETWORK_PROVIDER;
+//        String providerStr = LocationManager.GPS_PROVIDER;
         try {
             locationManager.setTestProviderLocation(providerStr, generateLocation(latLng));
             //for test
@@ -228,12 +230,13 @@ public class MockGpsService extends Service {
 
     //generate a location
     public Location generateLocation(LatLng latLng) {
-        Location loc = new Location("gps");
-
+        Location loc = new Location(LocationManager.GPS_PROVIDER);
 
         loc.setAccuracy(2.0F);
         loc.setAltitude(55.0D);
         loc.setBearing(1.0F);
+
+
         Bundle bundle = new Bundle();
         bundle.putInt("satellites", 7);
         loc.setExtras(bundle);
@@ -241,14 +244,11 @@ public class MockGpsService extends Service {
 
         loc.setLatitude(latLng.latitude);
         loc.setLongitude(latLng.longitude);
-//        loc.setAccuracy(1.0F);
-//        loc.setAltitude(10);
-//        loc.setBearing(90);
         loc.setTime(System.currentTimeMillis());
+
         if (Build.VERSION.SDK_INT >= 17) {
             loc.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
         }
-//        Log.d("WATCH",loc.toString());
         return loc;
     }
 
@@ -278,16 +278,4 @@ public class MockGpsService extends Service {
                 System.currentTimeMillis());
     }
 
-    public void DisplayToast(String str) {
-        Toast toast = Toast.makeText(this, str, Toast.LENGTH_LONG);
-        toast.setGravity(Gravity.TOP, 0, 220);
-        toast.show();
-    }
-
-    //get service
-    public class ServiceBinder extends Binder {
-        public MockGpsService getService() {
-            return MockGpsService.this;
-        }
-    }
 }

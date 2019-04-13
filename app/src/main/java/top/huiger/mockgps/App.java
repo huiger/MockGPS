@@ -5,6 +5,8 @@ import android.content.Context;
 
 import com.huige.library.HGUtils;
 
+import org.litepal.LitePal;
+
 /**
  * <pre>
  *  Author : huiGer
@@ -22,6 +24,7 @@ public class App extends Application{
         super.onCreate();
         mContext = this;
         HGUtils.init(this);
+        LitePal.initialize(this);
     }
 
     public static Context getContext() {

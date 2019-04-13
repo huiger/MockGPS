@@ -11,7 +11,7 @@ import com.yanzhenjie.permission.Action;
 
 import java.util.List;
 
-import top.huiger.mockgps.PermissionHelper;
+import top.huiger.mockgps.utils.PermissionHelper;
 
 /**
  * <pre>
@@ -51,7 +51,7 @@ public class LocationAMapUtils {
     }
 
     public void init(final Activity activity, final LocationAMapCallBack callBack) {
-//        CommonUtils.getPermission(activity, new Action<List<String>>() {
+//        MapUtils.getPermission(activity, new Action<List<String>>() {
 //            @Override
 //            public void onAction(List<String> data) {
 //                getLocation(activity, callBack);

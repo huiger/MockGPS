@@ -12,13 +12,19 @@ import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.animation.BounceInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
@@ -35,6 +41,7 @@ import com.amap.api.maps2d.MapView;
 import com.amap.api.maps2d.UiSettings;
 import com.amap.api.maps2d.model.BitmapDescriptorFactory;
 import com.amap.api.maps2d.model.LatLng;
+import com.amap.api.maps2d.model.Marker;
 import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.services.core.AMapException;
@@ -43,10 +50,13 @@ import com.amap.api.services.core.PoiItem;
 import com.amap.api.services.geocoder.RegeocodeAddress;
 import com.amap.api.services.poisearch.PoiResult;
 import com.amap.api.services.poisearch.PoiSearch;
+import com.huige.library.interfaces.OnItemClickListener;
 import com.huige.library.utils.DeviceUtils;
 import com.huige.library.utils.KeyboardUtils;
 import com.huige.library.utils.ToastUtils;
 import com.yanzhenjie.permission.Action;
+
+import org.litepal.LitePal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +64,13 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import butterknife.OnLongClick;
+import top.huiger.mockgps.adapter.AddressAdapter;
+import top.huiger.mockgps.entity.LocationEntity;
 import top.huiger.mockgps.gaodeLBS.GeoCoderUtil;
 import top.huiger.mockgps.services.MockGpsService;
+import top.huiger.mockgps.utils.MapUtils;
+import top.huiger.mockgps.utils.PermissionHelper;
 
 /**
  * <pre>
@@ -82,6 +97,8 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
     ImageView ivMenu5;
     @Bind(R.id.iv_menu_1)
     ImageView ivMenu1;
+
+
     OnLocationChangedListener mListener;
     private AMap mAMap;
     private AMapLocationClient mlocationClient;
@@ -89,13 +106,25 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
     private ArrayList<ImageView> imageViews = new ArrayList<>();
     //菜单是否展开的flag,false表示没展开
     private boolean mFlag = false;
-    private boolean isLocation;
     /**
      * 标记位置坐标
      */
-    private String markerLonLatInfo = "";
+    private LocationEntity markerLonLatInfo;
+    /**
+     * 首次定位位置
+     */
+    private double firstLocationLat, firstLocationLng;
     private Intent mMockLocServiceIntent;
     private boolean isMockServerStart;
+    /**
+     * 手动标记的marker
+     */
+    private Marker marker;
+    /**
+     * 定位小蓝点
+     */
+    private Marker locationMarker;
+    private boolean isLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,17 +181,23 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
 
     }
 
+
     private void initListener() {
 
         mAMap.setOnMapClickListener(new AMap.OnMapClickListener() {
             @Override
             public void onMapClick(final LatLng latLng) {
-                mAMap.clear();
-                View markerView = LayoutInflater.from(MainActivity.this).inflate(R.layout.amap_marker, mapView, false);
-                mAMap.addMarker(new MarkerOptions()
-                        .position(latLng)
-                        .icon(BitmapDescriptorFactory.fromView(markerView))
-                );
+
+                if (marker == null) {
+                    View markerView = LayoutInflater.from(MainActivity.this).inflate(R.layout.amap_marker, mapView, false);
+                    MarkerOptions markerOptions = new MarkerOptions()
+                            .position(latLng)
+                            .icon(BitmapDescriptorFactory.fromView(markerView));
+                    marker = mAMap.addMarker(markerOptions);
+                } else {
+                    marker.setPosition(latLng);
+                }
+
                 GeoCoderUtil.getInstance(MainActivity.this).geoAddress(latLng, new GeoCoderUtil.GeoCoderAddressListener() {
                     @Override
                     public void onAddressResult(RegeocodeAddress regeocodeAddress, String result) {
@@ -175,12 +210,16 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
 //                        if (regeocodeAddress.getAois().size() > 0) {
 //                            locationDesc += regeocodeAddress.getAois().get(0).getAoiName();
 //                        }
-                        markerLonLatInfo = latLng.longitude + "&" + latLng.latitude;
+
+                        markerLonLatInfo = new LocationEntity();
+                        markerLonLatInfo.setLatLng(new LatLng(latLng.latitude, latLng.longitude));
+                        markerLonLatInfo.setAddress(result);
                         Log.d("msg", "MainActivity -> onAddressResult: 点击: " + markerLonLatInfo);
                     }
                 });
             }
         });
+
     }
 
     @OnClick(R.id.btn_search)
@@ -207,11 +246,8 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
                         if (poiResult.getPois().size() > 0) {
                             PoiItem poiItem = poiResult.getPois().get(0);
                             LatLonPoint latLonPoint = poiItem.getLatLonPoint();
-                            LatLng latLng = new LatLng(latLonPoint.getLatitude(), latLonPoint.getLongitude());
-                            if (mAMap != null) {
-                                mAMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                                mAMap.moveCamera(CameraUpdateFactory.zoomTo(17));
-                            }
+                            // 移动地图
+                            MapUtils.AmapMoveCamera(mAMap, latLonPoint.getLatitude(), latLonPoint.getLongitude());
                         } else {
                             ToastUtils.showToast("未搜索到相应位置");
                         }
@@ -236,33 +272,124 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
         switch (v.getId()) {
             case R.id.iv_menu_1:
                 if (mFlag) {
-                    //100为扇形半径dp值
-                    showExitAnim(100);
+                    hintMenuAnim();
                 } else {
-                    showEnterAnim(100);
+                    showMenuAnim();
                 }
                 break;
-            case R.id.iv_menu_2:    // 当前位置
-
+            case R.id.iv_menu_2:    // 回到初始位置
+                MapUtils.AmapMoveCamera(mAMap, firstLocationLat, firstLocationLng);
                 break;
             case R.id.iv_menu_3:    // 将当前位置移至标记位置
                 if (isAllowMockLocation()) {
                     runMockGPS();
-                }else{
+                } else {
                     showGetPermissionDialog();
                 }
+                break;
+            case R.id.iv_menu_4:    // 显示常用地址
+                showAddressList();
+                break;
+            case R.id.iv_menu_5:    //
+
+                break;
+            default:
+        }
+
+
+    }
+
+    private AlertDialog mDialog;
+    private List<LocationEntity> mList = new ArrayList<>();
+    private AddressAdapter mAdapter;
+
+    /**
+     * 显示常用位置数据
+     */
+    private void showAddressList() {
+        if (mDialog == null) {
+            View rootView = LayoutInflater.from(this).inflate(R.layout.dialog_address_layout, null);
+            mDialog = new AlertDialog.Builder(this)
+                    .setView(rootView)
+                    .create();
+            WindowManager.LayoutParams lp = mDialog.getWindow().getAttributes();
+            lp.width = (int) (DeviceUtils.getWindowWidth(this) * 0.8);
+            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            mDialog.getWindow().setAttributes(lp);
+
+            rootView.findViewById(R.id.iv_close_dialog).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    mDialog.dismiss();
+                }
+            });
+            RecyclerView recyclerView = rootView.findViewById(R.id.recyclerView);
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+//            mList.addAll(LitePal.findAll(LocationEntity.class));
+            // 降序排序
+            mList.addAll(LitePal.order("usedCount desc").find(LocationEntity.class));
+
+            mAdapter = new AddressAdapter(this, mList);
+            recyclerView.setAdapter(mAdapter);
+            mAdapter.setOnItemClickListener(new OnItemClickListener() {
+                @Override
+                public void onItemClick(int position, View view) {
+                    markerLonLatInfo = mList.get(position);
+                    stopMockGPS();
+                    runMockGPS();
+                    mDialog.dismiss();
+                }
+            });
+        } else {
+            if (!mList.isEmpty()) {
+                mList.clear();
+            }
+            // 降序排序
+            mList.addAll(LitePal.order("usedCount desc").find(LocationEntity.class));
+            mAdapter.notifyDataSetChanged();
+        }
+
+        mDialog.show();
+    }
+
+    /**
+     * 长按Toast提示
+     *
+     * @param v
+     */
+    @OnLongClick({R.id.iv_menu_1, R.id.iv_menu_2, R.id.iv_menu_3, R.id.iv_menu_4, R.id.iv_menu_5})
+    public boolean onMenuLongClick(View v) {
+        switch (v.getId()) {
+            case R.id.iv_menu_1:
+                ToastUtils.showToast("展开/收起菜单工具");
+                break;
+            case R.id.iv_menu_2:
+                ToastUtils.showToast("回到初始位置");
+                break;
+            case R.id.iv_menu_3:
+                ToastUtils.showToast("设置当前为目标位置");
+                break;
+            case R.id.iv_menu_4:
+                ToastUtils.showToast("显示常用地址");
+                break;
+            case R.id.iv_menu_5:
+                ToastUtils.showToast("帮助");
                 break;
             default:
 
         }
+        return false;
     }
+
 
     /**
      * 隐藏扇形菜单的属性动画
      *
-     * @param dp
      */
-    private void showExitAnim(int dp) {
+    private void hintMenuAnim() {
+        // 100为扇形半径dp值
+        int dp = 100;
         //for循环来开始小图标的出现动画
         int size = imageViews.size();
         for (int i = 1; i < size; i++) {
@@ -289,9 +416,10 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
     /**
      * 显示扇形菜单的属性动画
      *
-     * @param dp
      */
-    private void showEnterAnim(int dp) {
+    private void showMenuAnim() {
+        // 100为扇形半径dp值
+        int dp = 100;
         //for循环来开始小图标的出现动画
         int size = imageViews.size();
         for (int i = 1; i < size; i++) {
@@ -365,8 +493,24 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
      */
     private void runMockGPS() {
 
+        if (markerLonLatInfo == null) {
+            ToastUtils.showToast("请先设置需要定位的坐标");
+            return;
+        }
         if (!isMockServerStart) {
-            mMockLocServiceIntent.putExtra("key", markerLonLatInfo);
+            LatLng latLng = markerLonLatInfo.getLatLng();
+            // 记录缓存
+            markerLonLatInfo.setLastTime(System.currentTimeMillis());
+            markerLonLatInfo.usedLocation();
+            markerLonLatInfo.save();
+            MapUtils.AmapMoveCamera(mAMap, markerLonLatInfo.getLatLng().latitude, markerLonLatInfo.getLatLng().longitude);
+
+            Log.d("msg", "MainActivity -> runMockGPS: " + mAMap.getMapScreenMarkers().size());
+            if(locationMarker != null) {
+                locationMarker.setPosition(markerLonLatInfo.getLatLng());
+            }
+
+            mMockLocServiceIntent.putExtra("latLng", latLng);
             if (Build.VERSION.SDK_INT >= 26) {
                 startForegroundService(mMockLocServiceIntent);
             } else {
@@ -375,11 +519,17 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
             isMockServerStart = true;
             ToastUtils.showToast("位置模拟已开启");
         } else {
-            stopService(mMockLocServiceIntent);
-            isMockServerStart = false;
+            stopMockGPS();
             ToastUtils.showToast("位置模拟已结束");
         }
+    }
 
+    /**
+     * 结束
+     */
+    private void stopMockGPS() {
+        stopService(mMockLocServiceIntent);
+        isMockServerStart = false;
     }
 
     /**
@@ -464,13 +614,59 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
     public void onLocationChanged(AMapLocation aMapLocation) {
         if (isLocation) return;
         isLocation = true;
+
+        locationMarker =  mAMap.getMapScreenMarkers().get(0);
         if (aMapLocation != null && aMapLocation.getErrorCode() == 0) {
             mListener.onLocationChanged(aMapLocation);
-            markerLonLatInfo = aMapLocation.getLongitude() + "&" + aMapLocation.getLatitude();
+            if (firstLocationLat == 0 || firstLocationLng == 0) {
+                firstLocationLat = aMapLocation.getLatitude();
+                firstLocationLng = aMapLocation.getLongitude();
+            }
+            Log.d("msg", "MainActivity -> onLocationChanged: 高德定位->" +
+                    aMapLocation.getLongitude() + ":" + aMapLocation.getLatitude());
         } else {
             ToastUtils.showToast("定位失败!");
         }
     }
 
+    private long lastClickTime = 0;
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastClickTime > 2000) {
+                ToastUtils.showToast("再按一次退出");
+                lastClickTime = currentTime;
+                return true;
+            }
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(0);
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mapView.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mapView.onResume();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        mapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mapView.onDestroy();
+    }
 }

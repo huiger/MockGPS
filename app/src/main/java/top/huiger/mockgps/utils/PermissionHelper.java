@@ -1,4 +1,4 @@
-package top.huiger.mockgps;
+package top.huiger.mockgps.utils;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -13,6 +13,8 @@ import com.yanzhenjie.permission.Setting;
 import com.yanzhenjie.permission.runtime.PermissionRequest;
 
 import java.util.List;
+
+import top.huiger.mockgps.R;
 
 /**
  * <pre>
