@@ -1,4 +1,4 @@
-package top.huiger.mockgps;
+package top.huiger.mockgps.activity;
 
 import android.Manifest;
 import android.animation.AnimatorSet;
@@ -65,6 +65,7 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.OnLongClick;
+import top.huiger.mockgps.R;
 import top.huiger.mockgps.adapter.AddressAdapter;
 import top.huiger.mockgps.entity.LocationEntity;
 import top.huiger.mockgps.gaodeLBS.GeoCoderUtil;
@@ -293,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
                 showAddressList();
                 break;
             case R.id.iv_menu_5:    //
-
+                startActivity(new Intent(this, AboutActivity.class));
                 break;
             default:
         }
@@ -619,7 +620,7 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
         }catch (Exception e){
 
         }
-        
+
         if (isLocation) return;
         isLocation = true;
 
