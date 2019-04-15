@@ -142,7 +142,9 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
                     }
                 }, Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE);
+                Manifest.permission.READ_EXTERNAL_STORAGE
+                );
+
 
         imageViews.add(ivMenu1);
         imageViews.add(ivMenu2);
@@ -385,7 +387,6 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
 
     /**
      * 隐藏扇形菜单的属性动画
-     *
      */
     private void hintMenuAnim() {
         // 100为扇形半径dp值
@@ -415,7 +416,6 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
 
     /**
      * 显示扇形菜单的属性动画
-     *
      */
     private void showMenuAnim() {
         // 100为扇形半径dp值
@@ -506,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
             MapUtils.AmapMoveCamera(mAMap, markerLonLatInfo.getLatLng().latitude, markerLonLatInfo.getLatLng().longitude);
 
             Log.d("msg", "MainActivity -> runMockGPS: " + mAMap.getMapScreenMarkers().size());
-            if(locationMarker != null) {
+            if (locationMarker != null) {
                 locationMarker.setPosition(markerLonLatInfo.getLatLng());
             }
 
@@ -612,10 +612,18 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
      */
     @Override
     public void onLocationChanged(AMapLocation aMapLocation) {
+        try {
+            if(locationMarker == null) {
+                locationMarker = mAMap.getMapScreenMarkers().get(0);
+            }
+        }catch (Exception e){
+
+        }
+        
         if (isLocation) return;
         isLocation = true;
 
-        locationMarker =  mAMap.getMapScreenMarkers().get(0);
+
         if (aMapLocation != null && aMapLocation.getErrorCode() == 0) {
             mListener.onLocationChanged(aMapLocation);
             if (firstLocationLat == 0 || firstLocationLng == 0) {
@@ -624,6 +632,7 @@ public class MainActivity extends AppCompatActivity implements LocationSource, A
             }
             Log.d("msg", "MainActivity -> onLocationChanged: 高德定位->" +
                     aMapLocation.getLongitude() + ":" + aMapLocation.getLatitude());
+
         } else {
             ToastUtils.showToast("定位失败!");
         }
