@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
-
+def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
 android {
     signingConfigs {
         config {
@@ -43,6 +45,19 @@ android {
         }
         debug {
             signingConfig signingConfigs.config
+        }
+    }
+
+    //输出apk到本地指定位置
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            if (variant.buildType.name == "release") {
+//                def outputPathName = "./apk"
+                def newName = 'MockGPS_v' + versionName + "_${releaseTime()}_" + variant.buildType.name + '.apk'
+//                output.outputFileName = new File(outputPathName, output.outputFile.name.replace("app-release.apk", newName))
+                variant.getPackageApplication().outputDirectory = new File(project.rootDir.absolutePath + File.separator + "apk")
+                output.outputFileName = newName
+            }
         }
     }
 }
